@@ -76,5 +76,5 @@ def resize_images():
     return send_file(zip_file, download_name='resized_images.zip', as_attachment=True)
 
 
-if __name__ == '__main__':
-    app.run()
+if __name__ == "__main__":
+    app.run(host='0.0.0.0')
