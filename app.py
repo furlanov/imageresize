@@ -5,15 +5,12 @@ import secrets
 import io
 import os
 
-
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
-
 
 @app.route('/')
 def index():
     return render_template('index.html')
-
 
 def get_renamed_image_filename(image, img, output_format, rename_format):
     original_name, original_ext = os.path.splitext(image.filename)
@@ -22,7 +19,6 @@ def get_renamed_image_filename(image, img, output_format, rename_format):
         return f'{original_name}_{width}x{height}.{output_format}'
     else:
         return f'{original_name}.{output_format}'
-
 
 @app.route('/resize_images', methods=['POST'])
 def resize_images():
@@ -38,9 +34,8 @@ def resize_images():
         image_io = io.BytesIO(image.read())
         img = Image.open(image_io)
 
-        if aspect_ratio:
-            if height is not None and width is None:
-                width = int(img.width * height / img.height)
+        if aspect_ratio and height is not None and width is None:
+            width = int(img.width * height / img.height)
         elif height is None and width is None:
             height = img.height
             width = img.width
@@ -49,22 +44,24 @@ def resize_images():
             img = img.resize((width, height))
         image_io = io.BytesIO()
 
+        img_format, img_save_format = None, None
         if output_format in ['jpg', 'jpeg']:
-         if img.mode == 'RGBA':
-            img = img.convert('RGB')
-            img.save(image_io, 'JPEG')
+            img_format, img_save_format = 'JPEG', 'RGB'
         elif output_format == 'png':
-            img.save(image_io, 'PNG')
+            img_format = 'PNG'
         elif output_format == 'ico':
-            img.save(image_io, 'ICO')
+            img_format = 'ICO'
         elif output_format == 'gif':
-            img.save(image_io, 'GIF')
+            img_format = 'GIF'
         else:
             return "Invalid output format"
-
+        
+        if img.mode == 'RGBA' and img_save_format:
+            img = img.convert(img_save_format)
+            
+        img.save(image_io, img_format)
         image_io.seek(0)
-        resized_images.append((image_io, get_renamed_image_filename(
-            image, img, output_format, rename_format)))
+        resized_images.append((image_io, get_renamed_image_filename(image, img, output_format, rename_format)))
 
     zip_file = io.BytesIO()
 
@@ -74,7 +71,6 @@ def resize_images():
 
     zip_file.seek(0)
     return send_file(zip_file, download_name='resized_images.zip', as_attachment=True)
-
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')
