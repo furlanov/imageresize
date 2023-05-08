@@ -9,28 +9,16 @@ body {
     margin: 50px auto;
     padding: 20px;
     background-color: #343a40;
-    border-radius: 5px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
     text-align: center;
 }
 
 .title {
     font-size: 2rem;
     font-weight: 700;
-    margin-bottom: 20px;
-}
-
-.form-check-label {
-    color: #fff;
-}
-
-.aspect-ratio-switch {
-    margin-bottom: 1rem;
 }
 
 .btn-primary {
-    background-color: #007bff;
-    border-color: #007bff;
     width: 100%;
 }
 
@@ -39,8 +27,4 @@ body {
 .btn-primary:active {
     background-color: #0069d9;
     border-color: #0062cc;
-}
-
-.form-control:focus {
-    box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
 }

@@ -1,5 +1,6 @@
 from flask import Flask, request, send_file, render_template
 from PIL import Image
+import datetime
 import zipfile
 import secrets
 import io
@@ -17,6 +18,9 @@ def get_renamed_image_filename(image, img, output_format, rename_format):
     if rename_format == 'add_resolution':
         width, height = img.size
         return f'{original_name}_{width}x{height}.{output_format}'
+    if rename_format == 'add_date':
+        current_date = datetime.date.today()
+        return f'{original_name}_{current_date.strftime("%d_%m_%Y")}.{output_format}'
     else:
         return f'{original_name}.{output_format}'
 
