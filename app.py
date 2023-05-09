@@ -34,6 +34,10 @@ def resize_images():
     resized_images = []
 
     for image in images:
+        if not image:
+            return "No file selected"
+        if not allowed_file(image.filename):
+            return "Invalid file type. Images with extensions - JPG, JPEG, PNG, ICO, and GIF are allowed"
         width = int(request.form['width']) if request.form.get('width') and not aspect_ratio else None
         image_io = io.BytesIO(image.read())
         img = Image.open(image_io)
@@ -58,7 +62,7 @@ def resize_images():
         elif output_format == 'gif':
             img_format = 'GIF'
         else:
-            return "Invalid output format"
+            return "Invalid output format. Choose between JPG, JPEG, PNG, ICO and GIF."
         
         if img.mode == 'RGBA' and img_save_format:
             img = img.convert(img_save_format)
@@ -75,6 +79,11 @@ def resize_images():
 
     zip_file.seek(0)
     return send_file(zip_file, download_name='resized_images.zip', as_attachment=True)
+
+def allowed_file(filename):
+    ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'ico'}
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')
