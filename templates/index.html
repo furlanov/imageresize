@@ -15,31 +15,33 @@
     <div class="container">
         <h1 class="title text-center mb-4">IMAGE RESIZER</h1>
         <form action="{{ url_for('resize_images') }}" method="post" enctype="multipart/form-data">
-            <div class="mb-3">
+            <div class="form-element mb-3">
                 <input type="file" id="images" name="images" class="form-control" multiple required accept="image/*">
             </div>
-            <div class="aspect-ratio aspect-ratio-switch d-flex align-items-center justify-content-between mb-3">
-                <label class="form-check-label" for="aspect-ratio">Maintain Aspect Ratio</label>
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="aspect-ratio" name="aspect-ratio"
-                        onchange="toggleAspectRatio()">
+            <div class="form-element mb-3">
+                <div class="aspect-ratio aspect-ratio-switch d-flex align-items-center justify-content-between mb-3">
+                    <label class="form-check-label" for="aspect-ratio">Maintain Aspect Ratio</label>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="aspect-ratio" name="aspect-ratio"
+                            onchange="toggleAspectRatio()">
+                    </div>
+                </div>
+                <div class="wh-input form-group row mb-3">
+                    <div class="col">
+                        <input type="number" id="height" name="height" class="form-control" placeholder="Height (px)"
+                            required min="0" max="10000">
+                    </div>
+                    <div class="col">
+                        <input type="number" id="width" name="width" class="form-control" placeholder="Width (px)"
+                            required min="0" max="10000">
+                    </div>
                 </div>
             </div>
-            <div class="form-group row mb-3">
-                <div class="col">
-                    <input type="number" id="height" name="height" class="form-control" placeholder="Height (px)"
-                        required min="0" max="10000">
-                </div>
-                <div class="col">
-                    <input type="number" id="width" name="width" class="form-control" placeholder="Width (px)" required
-                        min="0" max="10000">
-                </div>
-            </div>
-            <div class="mb-3">
+            <div class="compression form-element mb-3">
                 <label for="compression" class="form-label">Compression</label>
                 <input type="range" class="form-range" id="compression">
             </div>
-            <div class="mb-3">
+            <div class="output form-element mb-3">
                 <label for="output-format" class="form-label">Output Format</label>
                 <select id="output-format" name="output-format" class="form-select">
                     <option value="jpg">JPG</option>
@@ -48,7 +50,7 @@
                     <option value="gif">GIF</option>
                 </select>
             </div>
-            <div class="mb-3">
+            <div class="form-element mb-3">
                 <label for="rename-format" class="form-label">Rename Options</label>
                 <select id="rename-format" name="rename-format" class="form-select">
                     <option value="no_change">Original</option>
@@ -56,10 +58,13 @@
                     <option value="add_date">Original + Date</option>
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary">Resize</button>
+            <div class="d-flex justify-content-center mt-3">
+                <button type="submit" class="btn btn-primary">Resize</button>
+            </div>
         </form>
     </div>
     <script src="{{ url_for('static', filename='scripts.js') }}"></script>
 </body>
+
 
 </html>

@@ -81,7 +81,7 @@ def resize_images():
     return send_file(zip_file, download_name='resized_images.zip', as_attachment=True)
 
 def allowed_file(filename):
-    ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'ico'}
+    ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'ico', 'webp'}
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
