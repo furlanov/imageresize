@@ -61,6 +61,12 @@ def resize_images():
             img_format = 'ICO'
         elif output_format == 'gif':
             img_format = 'GIF'
+        elif output_format == 'bmp':
+            img_format = 'BMP'
+        elif output_format == 'tiff':
+            img_format = 'TIFF'
+        elif output_format == 'webp':
+            img_format = 'WEBP'
         else:
             return "Invalid output format. Choose between JPG, JPEG, PNG, ICO and GIF."
         
@@ -73,12 +79,15 @@ def resize_images():
 
     zip_file = io.BytesIO()
 
-    with zipfile.ZipFile(zip_file, mode='w') as zf:
-        for i, (resized_image, image_name) in enumerate(resized_images):
-            zf.writestr(image_name, resized_image.getbuffer())
+    if len(resized_images) == 1:
+        return send_file(resized_images[0][0], download_name=resized_images[0][1], as_attachment=True)
+    else:
+        with zipfile.ZipFile(zip_file, mode='w') as zf:
+            for i, (resized_image, image_name) in enumerate(resized_images):
+                zf.writestr(image_name, resized_image.getbuffer())
 
-    zip_file.seek(0)
-    return send_file(zip_file, download_name='resized_images.zip', as_attachment=True)
+        zip_file.seek(0)
+        return send_file(zip_file, download_name='resized_images.zip', as_attachment=True)
 
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'ico', 'webp'}
