@@ -16,7 +16,14 @@
         <h1 class="title text-center mb-4">IMAGE RESIZER</h1>
         <form action="{{ url_for('resize_images') }}" method="post" enctype="multipart/form-data">
             <div class="form-element mb-3">
-                <input type="file" id="images" name="images" class="form-control" multiple required accept="image/*">
+                <label for="resize-type" class="form-label">Resize Type</label>
+                <select id="resize-type" name="resize-type" class="form-select" onchange="toggleResizeType()">
+                    <option value="strech">Stretch</option>
+                    <option value="ai">AI Generative</option>
+                </select>
+            </div>
+            <div class="form-element mb-3">
+                <input type="file" id="images" name="images" class="form-control" required accept="image/*">
             </div>
             <div class="form-element mb-3">
                 <div class="aspect-ratio aspect-ratio-switch d-flex align-items-center justify-content-between mb-3">
