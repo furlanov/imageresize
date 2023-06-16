@@ -8,6 +8,7 @@ import openai
 import io
 import os
 
+
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
 
@@ -32,7 +33,7 @@ def resize_ai_image():
     allowed_file(image.filename)
 
     img = Image.open(image)
-    img = resize_with_crop(img, 512, 512)
+    img = crop(img, 512, 512)
     canvas = Image.new('RGBA', (1024, 1024), (0, 0, 0, 0))
     x = (canvas.width - img.width) // 2
     y = (canvas.height - img.height) // 2
@@ -46,7 +47,7 @@ def resize_ai_image():
         mask=open(temp_filename, "rb"),
         prompt="Fill the transparent space",
         n=1,
-        size="1048x1048"
+        size="1024x1024"
     )
     image_url = response['data'][0]['url']
 
@@ -100,8 +101,6 @@ def resize_simple_images():
             img_format = 'TIFF'
         elif output_format == 'webp':
             img_format = 'WEBP'
-        else:
-            abort(400, "Invalid output format. Choose between JPG, JPEG, PNG, ICO, and GIF.")
 
         if img.mode == 'RGBA' and img_save_format:
             img = img.convert(img_save_format)
@@ -126,7 +125,7 @@ def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'ico', 'webp'}
     if not '.' in filename or \
             filename.rsplit('.', 1)[1].lower() not in ALLOWED_EXTENSIONS:
-        abort(400, "Invalid file type. Images with extensions - JPG, JPEG, PNG, ICO, and GIF are allowed")
+        abort(400, "Only JPG, JPEG, PNG, ICO, and GIF are allowed")
 
 
 def get_renamed_image_filename(image, img, output_format, rename_format):
@@ -141,7 +140,7 @@ def get_renamed_image_filename(image, img, output_format, rename_format):
         return f'{original_name}.{output_format}'
 
 
-def resize_with_crop(image, target_width, target_height):
+def crop(image, target_width, target_height):
     width, height = image.size
     aspect_ratio = width / height
 
@@ -166,6 +165,9 @@ def resize_with_crop(image, target_width, target_height):
 
     return image
 
+@app.errorhandler(400)
+def error_400(error):
+    return render_template('error.html', error_message=error.description), 400
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')

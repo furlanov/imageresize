@@ -36,6 +36,5 @@ function toggleResizeType() {
         widthInput.classList.remove('grayed-out');
         document.getElementById('aspect-ratio').removeAttribute('disabled');
         fileInput.setAttribute('multiple', false);
-        fileInput.setAttribute('required', true);
     }
 }
