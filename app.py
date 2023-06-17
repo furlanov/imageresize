@@ -12,6 +12,26 @@ import os
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
 
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'ico', 'bmp', 'tiff', 'webp'}
+
+
+def image_format_conversion(img, output_format):
+    format_conversion = {
+        'jpg': ('JPEG', 'RGB'),
+        'png': ('PNG', None),
+        'ico': ('ICO', None),
+        'gif': ('GIF', None),
+        'bmp': ('BMP', None),
+        'tiff': ('TIFF', None),
+        'webp': ('WEBP', None)
+    }
+    img_format, img_save_format = format_conversion.get(output_format, (None, None))
+
+    if img.mode == 'RGBA' and img_save_format:
+        img = img.convert(img_save_format)
+
+    return img, img_format
+
 
 @app.route('/')
 def index():
@@ -21,16 +41,15 @@ def index():
 @app.route('/resize_images', methods=['POST'])
 def resize_images():
     resize_type = request.form['resize-type']
-    if resize_type == 'ai':
-        return resize_ai_image()
-    else:
-        return resize_simple_images()
+    return resize_ai_image() if resize_type == 'ai' else resize_simple_images()
 
 
 def resize_ai_image():
-    openai.api_key = ""
+    openai.api_key = "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"
     image = request.files['images']
     allowed_file(image.filename)
+    output_format = request.form['output-format']
+    rename_format = request.form['rename-format']
 
     img = Image.open(image)
     img = crop(img, 512, 512)
@@ -45,7 +64,7 @@ def resize_ai_image():
     response = openai.Image.create_edit(
         image=open(temp_filename, "rb"),
         mask=open(temp_filename, "rb"),
-        prompt="Fill the transparent space",
+        prompt="Fill the image",
         n=1,
         size="1024x1024"
     )
@@ -55,11 +74,17 @@ def resize_ai_image():
     response.raise_for_status()
 
     image_io = io.BytesIO(response.content)
+    img = Image.open(image_io)
 
-    original_name, original_ext = os.path.splitext(image.filename)
-    output_filename = f'{original_name}.png'
+    img, img_format = image_format_conversion(img, output_format)
 
-    return send_file(image_io, mimetype='image/png', as_attachment=True, download_name=output_filename)
+    output_io = io.BytesIO()
+    img.save(output_io, format=img_format)
+    output_io.seek(0)
+
+    output_filename = get_renamed_image_filename(image, img, output_format, rename_format)
+
+    return send_file(output_io, mimetype=f'image/{output_format}', as_attachment=True, download_name=output_filename)
 
 
 def resize_simple_images():
@@ -68,10 +93,10 @@ def resize_simple_images():
     images = request.files.getlist('images')
     output_format = request.form['output-format']
     rename_format = request.form['rename-format']
+
     resized_images = []
     for image in images:
         allowed_file(image.filename)
-
         width = int(request.form['width']) if request.form.get('width') and not aspect_ratio else None
         image_io = io.BytesIO(image.read())
         img = Image.open(image_io)
@@ -81,29 +106,11 @@ def resize_simple_images():
         elif height is None and width is None:
             height = img.height
             width = img.width
-
         if width is not None and height is not None:
             img = img.resize((width, height))
         image_io = io.BytesIO()
 
-        img_format, img_save_format = None, None
-        if output_format in ['jpg', 'jpeg']:
-            img_format, img_save_format = 'JPEG', 'RGB'
-        elif output_format == 'png':
-            img_format = 'PNG'
-        elif output_format == 'ico':
-            img_format = 'ICO'
-        elif output_format == 'gif':
-            img_format = 'GIF'
-        elif output_format == 'bmp':
-            img_format = 'BMP'
-        elif output_format == 'tiff':
-            img_format = 'TIFF'
-        elif output_format == 'webp':
-            img_format = 'WEBP'
-
-        if img.mode == 'RGBA' and img_save_format:
-            img = img.convert(img_save_format)
+        img, img_format = image_format_conversion(img, output_format)
 
         img.save(image_io, img_format)
         image_io.seek(0)
@@ -116,24 +123,23 @@ def resize_simple_images():
         with zipfile.ZipFile(zip_file, mode='w') as zf:
             for i, (resized_image, image_name) in enumerate(resized_images):
                 zf.writestr(image_name, resized_image.getbuffer())
-
         zip_file.seek(0)
         return send_file(zip_file, download_name='resized_images.zip', as_attachment=True)
 
 
 def allowed_file(filename):
-    ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'ico', 'webp'}
     if not '.' in filename or \
             filename.rsplit('.', 1)[1].lower() not in ALLOWED_EXTENSIONS:
-        abort(400, "Only JPG, JPEG, PNG, ICO, and GIF are allowed")
+        abort(400, "Only JPG, JPEG, PNG, ICO, BMM, TIFF and GIF are allowed")
 
 
 def get_renamed_image_filename(image, img, output_format, rename_format):
     original_name, original_ext = os.path.splitext(image.filename)
+
     if rename_format == 'add_resolution':
         width, height = img.size
         return f'{original_name}_{width}x{height}.{output_format}'
-    if rename_format == 'add_date':
+    elif rename_format == 'add_date':
         current_date = datetime.date.today()
         return f'{original_name}_{current_date.strftime("%d_%m_%Y")}.{output_format}'
     else:
@@ -143,7 +149,6 @@ def get_renamed_image_filename(image, img, output_format, rename_format):
 def crop(image, target_width, target_height):
     width, height = image.size
     aspect_ratio = width / height
-
     target_aspect_ratio = target_width / target_height
 
     if aspect_ratio > target_aspect_ratio:
@@ -160,14 +165,15 @@ def crop(image, target_width, target_height):
         bottom = top + new_height
 
     image = image.crop((left, top, right, bottom))
-
     image = image.resize((target_width, target_height))
 
     return image
 
+
 @app.errorhandler(400)
 def error_400(error):
     return render_template('error.html', error_message=error.description), 400
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')
