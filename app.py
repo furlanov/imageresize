@@ -7,30 +7,14 @@ import secrets
 import openai
 import io
 import os
+import api
 
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
 
+
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'ico', 'bmp', 'tiff', 'webp'}
-
-
-def image_format_conversion(img, output_format):
-    format_conversion = {
-        'jpg': ('JPEG', 'RGB'),
-        'png': ('PNG', None),
-        'ico': ('ICO', None),
-        'gif': ('GIF', None),
-        'bmp': ('BMP', None),
-        'tiff': ('TIFF', None),
-        'webp': ('WEBP', None)
-    }
-    img_format, img_save_format = format_conversion.get(output_format, (None, None))
-
-    if img.mode == 'RGBA' and img_save_format:
-        img = img.convert(img_save_format)
-
-    return img, img_format
 
 
 @app.route('/')
@@ -41,11 +25,15 @@ def index():
 @app.route('/resize_images', methods=['POST'])
 def resize_images():
     resize_type = request.form['resize-type']
-    return resize_ai_image() if resize_type == 'ai' else resize_simple_images()
+    if resize_type == 'ai':
+        result = resize_ai()
+    else:
+        result = resize_stretch()
+    return result
 
 
-def resize_ai_image():
-    openai.api_key = "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"
+def resize_ai():
+    openai.api_key = api.api_key
     image = request.files['images']
     allowed_file(image.filename)
     output_format = request.form['output-format']
@@ -76,18 +64,18 @@ def resize_ai_image():
     image_io = io.BytesIO(response.content)
     img = Image.open(image_io)
 
-    img, img_format = image_format_conversion(img, output_format)
+    img, img_format = format(img, output_format)
 
     output_io = io.BytesIO()
     img.save(output_io, format=img_format)
     output_io.seek(0)
 
-    output_filename = get_renamed_image_filename(image, img, output_format, rename_format)
+    output_filename = rename(image, img, output_format, rename_format)
 
     return send_file(output_io, mimetype=f'image/{output_format}', as_attachment=True, download_name=output_filename)
 
 
-def resize_simple_images():
+def resize_stretch():
     height = int(request.form['height']) if request.form['height'] else None
     aspect_ratio = request.form.get('aspect-ratio') == 'on'
     images = request.files.getlist('images')
@@ -110,11 +98,11 @@ def resize_simple_images():
             img = img.resize((width, height))
         image_io = io.BytesIO()
 
-        img, img_format = image_format_conversion(img, output_format)
+        img, img_format = format(img, output_format)
 
         img.save(image_io, img_format)
         image_io.seek(0)
-        resized_images.append((image_io, get_renamed_image_filename(image, img, output_format, rename_format)))
+        resized_images.append((image_io, rename(image, img, output_format, rename_format)))
 
     if len(resized_images) == 1:
         return send_file(resized_images[0][0], download_name=resized_images[0][1], as_attachment=True)
@@ -125,15 +113,32 @@ def resize_simple_images():
                 zf.writestr(image_name, resized_image.getbuffer())
         zip_file.seek(0)
         return send_file(zip_file, download_name='resized_images.zip', as_attachment=True)
+    
+
+def format(img, output_format):
+    format_conversion = {
+        'jpg': ('JPEG', 'RGB'),
+        'png': ('PNG', None),
+        'ico': ('ICO', None),
+        'gif': ('GIF', None),
+        'bmp': ('BMP', None),
+        'tiff': ('TIFF', None),
+        'webp': ('WEBP', None)
+    }
+    img_format, img_save_format = format_conversion.get(output_format, (None, None))
+
+    if img.mode == 'RGBA' and img_save_format:
+        img = img.convert(img_save_format)
+
+    return img, img_format
 
 
 def allowed_file(filename):
-    if not '.' in filename or \
-            filename.rsplit('.', 1)[1].lower() not in ALLOWED_EXTENSIONS:
+    if '.' not in filename or filename.rsplit('.', 1)[1].lower() not in ALLOWED_EXTENSIONS:
         abort(400, "Only JPG, JPEG, PNG, ICO, BMM, TIFF and GIF are allowed")
 
 
-def get_renamed_image_filename(image, img, output_format, rename_format):
+def rename(image, img, output_format, rename_format):
     original_name, original_ext = os.path.splitext(image.filename)
 
     if rename_format == 'add_resolution':
